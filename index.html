@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinix | Clinical Suite & EHR</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-main: #f1f5f9; --card-bg: #ffffff; --card-border: #e2e8f0;
+      --text-main: #0f172a; --text-muted: #64748b; --sidebar-bg: #ffffff;
+      --input-bg: #f8fafc; --input-border: #cbd5e1; --input-text: #0f172a;
+      --table-header-bg: #f8fafc; --table-hover-bg: #f1f5f9;
+      --accent-primary: #0284c7; --accent-hover: #0369a1; --accent-glow: rgba(2, 132, 199, 0.15);
+      --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+    }
+
+    [data-bs-theme="dark"] {
+      --bg-main: #090d16; --card-bg: rgba(21, 29, 46, 0.7); --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc; --text-muted: #94a3b8; --sidebar-bg: #0f172a;
+      --input-bg: rgba(15, 23, 42, 0.6); --input-border: rgba(255, 255, 255, 0.12); --input-text: #f8fafc;
+      --table-header-bg: rgba(15, 23, 42, 0.8); --table-hover-bg: rgba(255, 255, 255, 0.03);
+      --accent-primary: #38bdf8; --accent-hover: #7dd3fc; --accent-glow: rgba(56, 189, 248, 0.25);
+      --shadow-md: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-main);
+      color: var(--text-main); transition: all 0.3s ease; letter-spacing: -0.01em; margin: 0;
+    }
+
+    .brand-gradient { background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    /* Responsive Layout Structure */
+    .app-container { display: flex; height: 100vh; overflow: hidden; }
+    
+    /* Sidebar */
+    .sidebar { width: 260px; background-color: var(--sidebar-bg); border-right: 1px solid var(--card-border); display: flex; flex-direction: column; z-index: 1000; flex-shrink: 0; transition: all 0.3s ease; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--card-border); }
+    .sidebar-nav { padding: 20px 10px; flex-grow: 1; overflow-y: auto; }
+    .nav-item { padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; color: var(--text-muted); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; cursor: pointer; }
+    .nav-item:hover { background-color: var(--table-hover-bg); color: var(--text-main); }
+    .nav-item.active { background-color: var(--accent-glow); color: var(--accent-primary); border-right: 4px solid var(--accent-primary); border-radius: 12px 0 0 12px; }
+    
+    /* Main Content */
+    .main-content { flex-grow: 1; overflow-y: auto; padding: 20px; background-image: radial-gradient(at 0% 0%, var(--accent-glow) 0px, transparent 50%); background-attachment: fixed; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); flex-wrap: wrap; gap: 12px; }
+
+    .card-custom { border: 1px solid var(--card-border) !important; border-radius: 20px; background-color: var(--card-bg) !important; backdrop-filter: blur(16px); box-shadow: var(--shadow-md); transition: all 0.25s ease; }
+    .form-control, .form-select { background-color: var(--input-bg) !important; border: 1px solid var(--input-border) !important; color: var(--input-text) !important; border-radius: 12px; }
+    .form-control:focus, .form-select:focus { border-color: var(--accent-primary) !important; box-shadow: 0 0 0 4px var(--accent-glow) !important; }
+    
+    /* Table Styling & Overflow Fix */
+    .table { --bs-table-bg: transparent; --bs-table-color: var(--text-main); margin-bottom: 0; }
+    .table thead tr { background-color: var(--table-header-bg) !important; border-bottom: 2px solid var(--card-border); }
+    .table tbody tr { border-bottom: 1px solid var(--card-border); transition: background-color 0.2s ease; }
+    .table tbody tr:hover { background-color: var(--table-hover-bg) !important; }
+    .action-btn-group { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
+
+    .btn-teal { background-color: var(--accent-primary); color: #ffffff; border: none; border-radius: 12px; }
+    .btn-teal:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
+    
+    .badge-soft-success { background-color: rgba(34, 197, 94, 0.15) !important; color: #16a34a !important; }
+    .badge-soft-warning { background-color: rgba(245, 158, 11, 0.15) !important; color: #d97706 !important; }
+    .badge-soft-danger { background-color: rgba(239, 68, 68, 0.15) !important; color: #dc2626 !important; }
+    .badge-soft-info { background-color: rgba(14, 165, 233, 0.15) !important; color: #0284c7 !important; }
+    .badge-soft-purple { background-color: rgba(168, 85, 247, 0.15) !important; color: #9333ea !important; }
+    
+    .triage-item { background-color: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-left: 5px solid #dc2626; border-radius: 10px; }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 99px; }
+
+    /* Mobile Responsive Layout Adjustments */
+    @media (max-width: 991.98px) {
+      .app-container { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--card-border); }
+      .sidebar-nav { display: flex; flex-direction: row !important; overflow-x: auto; padding: 10px; }
+      .nav-item { white-space: nowrap; margin-bottom: 0; margin-right: 8px; }
+      .nav-item.active { border-right: none; border-bottom: 4px solid var(--accent-primary); border-radius: 12px 12px 0 0; }
+      .sidebar .mt-auto { margin-top: 0 !important; border-top: none !important; display: flex; align-items: center; gap: 10px; padding-top: 0 !important; }
+      .main-content { padding: 15px; }
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      .sidebar { display: none !important; }
+      .main-content { padding: 0 !important; overflow: visible !important; }
+      body { background-color: white !important; color: black !important; }
+      .card-custom { box-shadow: none !important; border: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== 1. LANDING / LOGIN PAGE ==================== -->
+  <div id="loginLandingSection" class="d-flex flex-column align-items-center justify-content-center vh-100 p-3">
+    <div class="card card-custom p-4 p-md-5 text-center shadow-lg" style="max-width: 440px; width: 100%;">
+      <div class="mb-3">
+        <i class="bi bi-hospital fs-1 text-info"></i>
+      </div>
+      <h2 class="fw-extrabold mb-1">Cli<span class="brand-gradient">nix</span></h2>
+      <p class="text-muted small mb-4">Hospital EHR & Clinical Management System</p>
+      
+      <div class="p-3 bg-light rounded-4 border mb-4 text-start">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-shield-lock-fill text-success"></i>
+          <span class="fw-bold small">Secure Clinical Sign-In</span>
+        </div>
+        <p class="text-muted mb-0" style="font-size: 0.8rem;">
+          Authenticate using your authorized Google account to access your personal patient workspace.
+        </p>
+      </div>
+
+      <!-- Google Sign In Button Container -->
+      <div class="d-flex justify-content-center">
+        <div id="g_id_onload"
+             data-client_id="19014971193-l0mhu6j93emmjk7qk8mli03ho5gfe7rj.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin"
+             data-type="standard"
+             data-size="large"
+             data-theme="outline"
+             data-text="sign_in_with"
+             data-shape="pill"
+             data-logo_alignment="left">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. MAIN APPLICATION WORKSPACE ==================== -->
+  <div id="mainAppSection" class="app-container d-none">
+    
+    <!-- Sidebar -->
+    <div class="sidebar no-print">
+      <div class="sidebar-header d-flex justify-content-between align-items-center">
+        <a class="text-decoration-none d-flex align-items-center gap-2" href="#">
+          <i class="bi bi-hospital fs-3 text-info"></i>
+          <span class="fw-bold fs-5 text-dark" style="color: var(--text-main) !important;">Cli<span class="brand-gradient">nix</span></span>
+        </a>
+      </div>
+      <div class="sidebar-nav d-flex flex-column gap-2">
+        <a class="nav-item active" data-target="view-ehr">
+          <i class="bi bi-journal-medical fs-5"></i> Patient Records
+        </a>
+        <a class="nav-item" data-target="view-rx">
+          <i class="bi bi-capsule fs-5"></i> Prescriptions
+        </a>
+        <a class="nav-item" data-target="view-billing">
+          <i class="bi bi-receipt fs-5"></i> Billing & Invoices
+        </a>
+        <hr class="border-secondary-subtle my-2 d-none d-lg-block">
+        <a class="nav-item text-danger" id="clearDataBtn">
+          <i class="bi bi-trash3 fs-5"></i> Clear System Data
+        </a>
+        <a class="nav-item" id="generateDataBtn">
+          <i class="bi bi-magic fs-5"></i> Load Sample Data
+        </a>
+        
+        <!-- User Profile & Sign Out Button -->
+        <div class="mt-auto border-top pt-3">
+          <div class="d-flex align-items-center gap-2 mb-3 px-2">
+            <img id="userAvatar" src="" class="rounded-circle d-none" width="32" height="32" alt="Avatar">
+            <div class="text-truncate">
+              <div id="userNameDisplay" class="fw-bold small text-truncate">User</div>
+              <div id="userEmailDisplay" class="text-muted extra-small text-truncate" style="font-size: 0.7rem;">user@gmail.com</div>
+            </div>
+          </div>
+          <a class="nav-item text-danger" id="logoutBtn" onclick="logoutUser()">
+            <i class="bi bi-box-arrow-right fs-5"></i> Log Out
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      
+      <!-- Topbar -->
+      <div class="topbar no-print">
+        <h4 id="currentViewTitle" class="mb-0 fw-bold">Patient Records (EHR)</h4>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <button id="exportPdfBtn" class="btn btn-danger btn-sm px-3 rounded-pill fw-semibold"><i class="bi bi-file-pdf me-1"></i> PDF</button>
+          <button id="exportCsvBtn" class="btn btn-success btn-sm px-3 rounded-pill fw-semibold"><i class="bi bi-filetype-csv me-1"></i> CSV</button>
+          <div class="vr mx-1 d-none d-sm-block"></div>
+          <button id="themeToggleBtn" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i id="themeIcon" class="bi bi-moon-stars-fill me-1"></i> <span id="themeText">Dark Mode</span>
+          </button>
+          <button class="btn btn-light fw-semibold rounded-pill px-3 btn-sm shadow-sm border" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Print
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Triage Queue Dashboard -->
+      <div class="card card-custom mb-4 d-none no-print" id="triageCard" style="border-color: rgba(239, 68, 68, 0.3) !important; box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.1);">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title fw-bold text-danger mb-0 d-flex align-items-center gap-2 fs-5">
+              <i class="bi bi-heart-pulse-fill"></i> Immediate Triage Required
+            </h5>
+            <span class="badge bg-danger rounded-pill px-3 py-2" id="triageCountBadge">0 Critical</span>
+          </div>
+          <div id="triageList" class="d-flex flex-column gap-2"></div>
+        </div>
+      </div>
+
+      <!-- VIEW: Patient Records (EHR) -->
+      <div id="view-ehr" class="view-section">
+        <div class="row g-4">
+          <!-- Form Section -->
+          <div class="col-lg-4 no-print">
+            <div class="card card-custom">
+              <div class="card-body p-4">
+                <h5 id="formTitle" class="card-title fw-bold mb-3 d-flex align-items-center gap-2 fs-6">
+                  <i class="bi bi-journal-medical text-info"></i> Clinical Metric Entry
+                </h5>
+                <form id="logForm">
+                  <div class="mb-3">
+                    <label class="form-label text-muted fw-semibold" style="font-size: 0.75rem;">PATIENT NAME</label>
+                    <input type="text" id="patientName" class="form-control" list="patientSuggestions" placeholder="e.g. Sarah Jenkins" autocomplete="off" required>
+                    <datalist id="patientSuggestions"></datalist>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label text-muted fw-semibold" style="font-size: 0.75rem;">ATTENDING CLINICIAN ID</label>
+                    <input type="text" id="staffId" class="form-control bg-light" placeholder="e.g. Dr. Smith / RN Jones" required>
+                  </div>
+                  
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-semibold" style="font-size: 0.75rem;">CLINICAL METRIC</label>
+                      <select id="metricType" class="form-select" required>
+                        <option value="">Select...</option>
+                        <option value="Heart Rate">Heart Rate (bpm)</option>
+                        <option value="Blood Pressure">Blood Pressure (mmHg)</option>
+                        <option value="Blood Sugar">Blood Sugar (mg/dL)</option>
+                        <option value="Weight">Weight (kg)</option>
+                        <option value="SpO2">SpO2 (%)</option>
+                        <option value="Body Temp">Body Temp (°C)</option>
+                        <option value="Respiratory Rate">Respiratory Rate (breaths/min)</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-semibold" style="font-size: 0.75rem;">CONTEXT</label>
+                      <select id="readingContext" class="form-select">
+                        <option value="">Routine</option>
+                        <option value="Fasting">Fasting</option>
+                        <option value="Post-Prandial">Post-Prandial</option>
+                        <option value="Resting">Resting</option>
+                        <option value="Post-Medication">Post-Med</option>
+                        <option value="Continuous">Continuous Monitor</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label text-muted fw-semibold" style="font-size: 0.75rem;">READING VALUE</label>
+                    <input type="text" id="value" class="form-control fw-bold" placeholder="e.g., 85 or 120/80" required>
+                  </div>
+
+                  <div class="mb-4">
+                    <label class="form-label text-muted fw-semibold" style="font-size: 0.75rem;">CLINICAL NOTES</label>
+                    <textarea id="notes" class="form-control" rows="3" placeholder="Enter observations..."></textarea>
+                  </div>
+                  <button type="submit" id="submitBtn" class="btn btn-teal btn-lg w-100 fw-semibold py-2">Add to Patient Record</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logs Table -->
+          <div class="col-lg-8 w-print-100">
+            <div class="card card-custom h-100">
+              <div class="card-body p-4 d-flex flex-column">
+                
+                <div class="d-flex gap-2 mb-3 no-print">
+                  <input type="text" id="searchEHR" class="form-control" placeholder="Search records by patient or metric...">
+                </div>
+
+                <div class="table-responsive flex-grow-1">
+                  <table class="table align-middle">
+                    <thead>
+                      <tr class="text-uppercase text-muted border-bottom" style="font-size: 0.725rem;">
+                        <th>Patient</th>
+                        <th>Metric Type</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                        <th>Date & Staff</th>
+                        <th class="text-end no-print text-nowrap" style="min-width: 130px;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ehrTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: Prescriptions -->
+      <div id="view-rx" class="view-section d-none">
+        <div class="card card-custom h-100">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+              <h5 class="fw-bold mb-0 text-purple"><i class="bi bi-capsule me-2"></i>Active Prescriptions</h5>
+              <button class="btn btn-primary fw-semibold rounded-pill px-4 shadow-sm no-print" data-bs-toggle="modal" data-bs-target="#prescriptionModal">
+                <i class="bi bi-plus-lg me-1"></i> Write Prescription
+              </button>
+            </div>
+            
+            <div class="d-flex gap-2 mb-3 flex-wrap flex-sm-nowrap no-print">
+              <input type="text" id="searchRx" class="form-control" placeholder="Search by patient name...">
+              <input type="date" id="dateRx" class="form-control" style="max-width: 200px;">
+            </div>
+
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead>
+                  <tr class="text-uppercase text-muted border-bottom" style="font-size: 0.725rem;">
+                    <th>Patient</th>
+                    <th>Medication Details</th>
+                    <th>Prescribing Doctor</th>
+                    <th>Date Issued</th>
+                    <th class="text-end no-print text-nowrap" style="min-width: 80px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="rxTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: Billing -->
+      <div id="view-billing" class="view-section d-none">
+        <div class="card card-custom h-100">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+              <h5 class="fw-bold mb-0 text-success"><i class="bi bi-receipt me-2"></i>Patient Invoices</h5>
+              <button class="btn btn-success fw-semibold rounded-pill px-4 shadow-sm no-print" data-bs-toggle="modal" data-bs-target="#billingModal">
+                <i class="bi bi-plus-lg me-1"></i> Create Bill
+              </button>
+            </div>
+            
+            <div class="d-flex gap-2 mb-3 flex-wrap flex-sm-nowrap no-print">
+              <input type="text" id="searchBill" class="form-control" placeholder="Search by patient name...">
+              <input type="date" id="dateBill" class="form-control" style="max-width: 200px;">
+            </div>
+
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead>
+                  <tr class="text-uppercase text-muted border-bottom" style="font-size: 0.725rem;">
+                    <th>Patient</th>
+                    <th>Bill Summary</th>
+                    <th>Billed By</th>
+                    <th>Date</th>
+                    <th class="text-end no-print text-nowrap" style="min-width: 80px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="billingTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- View Record Modal -->
+  <div class="modal fade no-print" id="viewRecordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content card-custom">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title fw-bold text-info"><i class="bi bi-file-earmark-medical me-2"></i>Record Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-0" id="viewRecordContent">
+          <!-- Content populated via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Record Modal -->
+  <div class="modal fade no-print" id="editRecordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content card-custom">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title fw-bold text-warning"><i class="bi bi-pencil-square me-2"></i>Edit Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-0">
+          <form id="editLogForm">
+            <input type="hidden" id="editLogId">
+            <div class="mb-2">
+              <label class="form-label text-muted small fw-bold">Patient Name</label>
+              <input type="text" id="editPatientName" class="form-control form-control-sm" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-muted small fw-bold">Clinician ID</label>
+              <input type="text" id="editStaffId" class="form-control form-control-sm" required>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label text-muted small fw-bold">Metric</label>
+                <select id="editMetricType" class="form-select form-select-sm" required>
+                  <option value="Heart Rate">Heart Rate (bpm)</option>
+                  <option value="Blood Pressure">Blood Pressure (mmHg)</option>
+                  <option value="Blood Sugar">Blood Sugar (mg/dL)</option>
+                  <option value="Weight">Weight (kg)</option>
+                  <option value="SpO2">SpO2 (%)</option>
+                  <option value="Body Temp">Body Temp (°C)</option>
+                  <option value="Respiratory Rate">Respiratory Rate (breaths/min)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label text-muted small fw-bold">Context</label>
+                <select id="editReadingContext" class="form-select form-select-sm">
+                  <option value="">Routine</option>
+                  <option value="Fasting">Fasting</option>
+                  <option value="Post-Prandial">Post-Prandial</option>
+                  <option value="Resting">Resting</option>
+                  <option value="Post-Medication">Post-Med</option>
+                  <option value="Continuous">Continuous Monitor</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-muted small fw-bold">Reading Value</label>
+              <input type="text" id="editValue" class="form-control form-control-sm fw-bold" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Clinical Notes</label>
+              <textarea id="editNotes" class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn btn-warning w-100 fw-bold">Save Changes</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prescription Modal -->
+  <div class="modal fade no-print" id="prescriptionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content card-custom">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title fw-bold text-primary"><i class="bi bi-capsule me-2"></i>New Prescription</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-0">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted small fw-bold">Patient Name</label>
+              <input type="text" id="rxPatient" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small fw-bold">Prescribing Doctor</label>
+              <input type="text" id="rxDoctor" class="form-control" required>
+            </div>
+          </div>
+          <div class="bg-body-tertiary p-3 rounded mb-3 border">
+            <h6 class="fw-bold mb-3 fs-7 text-uppercase">Add Medication</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Medication & Dosage</label>
+                <input type="text" id="rxMedication" class="form-control form-control-sm" placeholder="e.g., Amoxicillin 500mg">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Frequency</label>
+                <select id="rxFrequency" class="form-select form-select-sm">
+                  <option>1-0-1 (Morning & Night)</option>
+                  <option>1-1-1 (Three times a day)</option>
+                  <option>1-0-0 (Morning only)</option>
+                  <option>0-0-1 (Night only)</option>
+                  <option>SOS (As needed)</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label text-muted small fw-bold">Days</label>
+                <input type="number" id="rxDuration" class="form-control form-control-sm" value="5" min="1">
+              </div>
+              <div class="col-md-2">
+                <button type="button" id="addRxItemBtn" class="btn btn-sm btn-dark w-100">Add</button>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive mb-3">
+            <table class="table table-sm border">
+              <thead class="table-light"><tr><th>Medication</th><th>Frequency</th><th>Duration</th><th style="width: 40px;"></th></tr></thead>
+              <tbody id="rxItemsList"></tbody>
+            </table>
+          </div>
+          <button type="button" id="saveRxBtn" class="btn btn-primary w-100 fw-bold">Save Prescription</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Billing Modal -->
+  <div class="modal fade no-print" id="billingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content card-custom">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title fw-bold text-success"><i class="bi bi-receipt me-2"></i>Generate Medical Bill</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-0">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted small fw-bold">Patient Name</label>
+              <input type="text" id="billPatient" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small fw-bold">Billing Staff ID</label>
+              <input type="text" id="billStaff" class="form-control" required>
+            </div>
+          </div>
+          <div class="bg-body-tertiary p-3 rounded mb-3 border">
+            <h6 class="fw-bold mb-3 fs-7 text-uppercase">Add Line Item</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-5">
+                <label class="form-label text-muted small">Service / Item</label>
+                <input type="text" id="billItemName" class="form-control form-control-sm" placeholder="e.g., Blood Test, Consultation">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label text-muted small">Qty</label>
+                <input type="number" id="billItemQty" class="form-control form-control-sm" value="1" min="1">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label text-muted small">Unit Price (₹)</label>
+                <input type="number" id="billItemCost" class="form-control form-control-sm" min="0" step="0.01">
+              </div>
+              <div class="col-md-2">
+                <button type="button" id="addBillItemBtn" class="btn btn-sm btn-dark w-100">Add</button>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive mb-3">
+            <table class="table table-sm border">
+              <thead class="table-light"><tr><th>Item</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th><th style="width: 40px;"></th></tr></thead>
+              <tbody id="billItemsList"></tbody>
+              <tfoot>
+                <tr><th colspan="3" class="text-end">Total Due:</th><th class="text-end text-success fs-5">₹<span id="billTotalAmount">0.00</span></th><th></th></tr>
+              </tfoot>
+            </table>
+          </div>
+          <button type="button" id="saveBillBtn" class="btn btn-success w-100 fw-bold">Save & Generate PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
