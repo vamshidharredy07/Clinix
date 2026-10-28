@@ -1,0 +1,6 @@
+
+trivy-cache/
+.env
+node_modules/
+scan_before.txt
+scan_after.txt
